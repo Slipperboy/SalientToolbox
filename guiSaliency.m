@@ -204,6 +204,7 @@ global params DEBUG_FID;
 setFeature(handles.Color,handles.WeightCol);
 setFeature(handles.Intensities,handles.WeightInt);
 setFeature(handles.Orientations,handles.WeightOri);
+%setFeature(handles.Texture,handles.WeightTex);
 setFeature(handles.Skin,handles.WeightSkin);
 setEnable(get(handles.Orientations,'Value'),[handles.NumOriText,handles.NumOri]);
 set(handles.NumOri,'String',num2str(numel(params.oriAngles)));
@@ -978,4 +979,3 @@ function MainWindowCloseCallback(hObject,event)
 handles = guidata(hObject);
 setState(handles,'Busy');
 uiresume(hObject);
-

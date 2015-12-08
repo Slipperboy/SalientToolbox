@@ -44,6 +44,10 @@ switch featureType
     pyrs(1) = makeRedGreenPyramid(img,salParams.pyramidType);
     pyrs(2) = makeBlueYellowPyramid(img,salParams.pyramidType);
 
+  case 'Texture'
+      pyrsIntensity = makeIntensityPyramid(img,salParams.pyramidType);
+      pyrs = makeTexturePyramid(pyrsIntensity);
+    
   case {'Orientation','Orientations'}
     % varargin{1} could be an intensity pyramid, otherwise have to make one
     intPyr = [];

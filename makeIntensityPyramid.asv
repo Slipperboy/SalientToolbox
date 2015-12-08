@@ -21,11 +21,9 @@ im = loadImage(image);
 
 map.origImage = image;
 map.label = 'Intensity';
-if(size(im,3)~=3)
-    map.data = im;
-else
-    map.data = rgb2gray(im);
-end
+if size(im)
+map.data = rgb2gray(im);
+%map.data = im;
 map.date = clock;
 
 intPyr = makeGaussianPyramid(map,type);

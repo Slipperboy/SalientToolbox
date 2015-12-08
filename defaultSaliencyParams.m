@@ -48,7 +48,7 @@ end
 params.features = {'Color','Intensities','Orientations'};
 
 % the weights in the same order as params.features
-params.weights = [1 1 1];
+params.weights = [1 1 1 ];
 
 % one of: 'shape','disk','None'
 params.IORtype = 'shape';

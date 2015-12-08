@@ -1,0 +1,118 @@
+function pyrs = makeTexturePyramid(pyrsIntensity)
+ %pyrs = makeTexturePyramid(pyrsIntensity);
+      pyrs.label = 'Texture';
+      pyrs.type = 'dyadic';
+      pyrs.origImage = pyrsIntensity.origImage;
+for levelnum = 1:length(pyrsIntensity.level);
+      levelimg = pyrsIntensity.level(levelnum).data;
+      [imageRow,imageCol]=size(levelimg);
+      levelimg = [levelimg(1,:);levelimg(1,:);levelimg(1,:);levelimg;levelimg(imageRow,:);levelimg(imageRow,:);levelimg(imageRow,:)];%图像矩阵行扩展
+      levelimg = [levelimg(:,1),levelimg(:,1),levelimg(:,1),levelimg,levelimg(:,imageCol),levelimg(:,imageCol),levelimg(:,imageCol)];%图像矩阵列扩展
+      [imageRowExpand,imageColExpand]=size(levelimg);
+
+%------对共生矩阵计算能量、熵、惯性矩、局部稳定性、相关5个纹理参数-------
+    ASM = zeros(imageRow,imageCol);ENT = zeros(imageRow,imageCol);INT = zeros(imageRow,imageCol);
+    IDM = zeros(imageRow,imageCol);CON = zeros(imageRow,imageCol);
+    for n = 1:4  
+    for i=4:imageRowExpand-3
+        for j=4:imageColExpand-3 
+            glcm = zeros(imageRow,imageCol);
+            switch n
+                case 1 
+                    glcm= graycomatrix(A(i-3:i+3,j-3:j+3),'NumLevels',16,'G',[],'Offset',[0,1]);
+                case 2 
+                    glcm = graycomatrix(A(i-3:i+3,j-3:j+3),'NumLevels',16,'G',[],'Offset',[-1,1]);
+                case 3 
+                    glcm = graycomatrix(A(i-3:i+3,j-3:j+3),'NumLevels',16,'G',[],'Offset',[-1,0]);
+                case 4 
+                    glcm = graycomatrix(A(i-3:i+3,j-3:j+3),'NumLevels',16,'G',[],'Offset',[-1,-1]);
+                otherwise
+            end
+            glcm = glcm/sum(sum(glcm));%归一化
+            ASM(i-3,j-3,n) = sum(sum(glcm^2));%能量
+
+            ENTtmp = 0;INTtmp = 0; IDMtmp  =0; 
+            CONtmpUX = 0; CONtmpUY = 0;
+            for k = 1:16
+                for l = 1:16
+                    if glcm(k,l)~=0
+                    ENTtmp = -glcm(k,l)*log(glcm(k,l))+ENTtmp;
+                    end
+                    INTtmp = glcm(k,l)*(k-l)^2 + INTtmp;%%%公式是否正确？？？
+                    IDMtmp = glcm(k,l)/(1+(k-l)^2) + IDMtmp;
+                    CONtmpUX = glcm(k,l)*k + CONtmpUX;%相关性中的ux
+                    CONtmpUY = glcm(k,l)*l + CONtmpUY;%相关性中的uy
+                end 
+            end
+            CONtmpSX = 0; CONtmpSY = 0;CONtmpKLP = 0;
+            for k = 1:16
+                for l = 1:16
+                    CONtmpSX = glcm(k,l)*(k-CONtmpUX)^2 + CONtmpSX;%相关性中的x方向方差
+                    CONtmpSY = glcm(k,l)*(l-CONtmpUY)^2 + CONtmpSY;%相关性中的y方向方差
+                    CONtmpKLP = k*l*glcm(k,l) + CONtmpKLP;
+                end
+            end
+            ENT(i-3,j-3,n) = ENTtmp;%熵
+            INT(i-3,j-3,n) = INTtmp;%惯性矩
+            IDM(i-3,j-3,n) = IDMtmp;%局部稳定性
+            CON(i-3,j-3,n) = (CONtmpKLP-CONtmpUX*CONtmpUY)/(CONtmpSX*CONtmpSY);
+        end
+    end
+    end
+%------以四个方向的特征的均值为这个纹理特征的最终的值------
+    ASMmean = zeros(imageRow,imageCol);
+    ENTmean = zeros(imageRow,imageCol);
+    INTmean = zeros(imageRow,imageCol);
+    IDMmean = zeros(imageRow,imageCol);
+    CONmean = zeros(imageRow,imageCol);
+    ASMtmp = 0; ENTtmp = 0;INTtmp = 0; IDMtmp  =0; CONtmp = 0;
+    for i=1:imageRow
+        for j=1:imageCol
+            for n = 1:4
+                ASMtmp = ASM(i,j,n) + ASMtmp;
+                ENTtmp = ENT(i,j,n) + ENTtmp;
+                INTtmp = INT(i,j,n) + INTtmp;
+                IDMtmp = IDM(i,j,n) + IDMtmp;
+                CONtmp = CON(i,j,n) + CONtmp;
+            end
+            ASMmean(i,j) = ASMtmp/4;
+            ENTmean(i,j) = ENTtmp/4;
+            INTmean(i,j) = INTtmp/4;
+            IDMmean(i,j) = IDMtmp/4;
+            CONmean(i,j) = CONtmp/4;
+        end
+    end
+    PCAImage = [reshape(ASMmean,imageRow*imageCol,1),reshape(ENTmean,imageRow*imageCol,1),...
+        reshape(INTmean,imageRow*imageCol,1),reshape(IDMmean,imageRow*imageCol,1),...
+        reshape(CONmean,imageRow*imageCol,1)];
+    %或者上式可以这么写PCAImage =
+    %[ASMmean(:),ENTmean(:),INTmean(:),IDMmean(:),CONmean(:)];
+    [COEFF,SCORE,LATENT] = princomp(double(PCAImage));
+    SCORE = SCORE(:,1:3);%取5个纹理特征的前3个特征------这一步是否可以省略
+    
+ %------PCA后会有负值出现，所以对每一列即每一个纹理特征 分别归一化到0-255范围
+ %要归一化到0-255嘛？？？？？？
+    %每列减去自己的列最小值
+    minM =[ min(SCORE(:,1),1),min(SCORE(:,2),1),min(SCORE(:,3),1)];
+    maxM = [max(SCORE(:,1),1),max(SCORE(:,2),1), max(SCORE(:,3),1)];
+
+    SCORE(:,1) = bsxfun(@minus,SCORE(:,1),minM(1));
+    SCORE(:,2) = bsxfun(@minus,SCORE(:,2),minM(2));
+    SCORE(:,3) = bsxfun(@minus,SCORE(:,3),minM(3));
+    %以上三行综合为：SCORE = bsxfun(@minus,SCORE,minM);
+    %归一化计算
+    SCORE(:,1) = 255*bsxfun(@rdivide,SCORE(:,1), maxM(1)-minM(1));
+    SCORE(:,2) = 255*bsxfun(@rdivide,SCORE(:,2), maxM(2)-minM(2));
+    SCORE(:,3) = 255*bsxfun(@rdivide,SCORE(:,3), maxM(3)-minM(3));
+    
+ %----------将3个纹理特征合成为一幅纹理特征图-------
+    TextureMap = mean(SCORE,2);%求3个纹理特征的均值，合成一个纹理图像
+    map.data = reshape(TextureMap,iamgeRow,imageCol);
+    map.date = clock;
+    map.label = sprintf('Texture-%d',levelnum);%pyrs的结构
+    map.origImage = pyrsIntensity.origImage;
+    map.parameters.type = 'dyadic';
+    pyrs.level(levelnum) = map;
+end     
+      pyrs.date = clock;
+      

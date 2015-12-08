@@ -34,7 +34,9 @@ pyr.levels(1) = map;
 
 n = 1;
 while (min(size(pyr.levels(n).data)) > 1)
-  if ((depth > 0) & (n >= depth)) break; end
+  if ((depth > 0) & (n >= depth)) 
+      break; 
+  end
   n = n + 1;
   newMap = [];
   newMap.origImage = map.origImage;

@@ -60,7 +60,21 @@ switch params.visualizationStyle
       otherwise
         error(['Unknown shape: ' shape]);
     end
-    contour(modMap.data,[0.5 0.5],'y-');
+    [czx,hzx] = contour(modMap.data,[0.5 0.5],'y-');
+    %------------------------------------------------
+    fid=fopen('VA.txt','w');
+    [rowzx,colzx] = size(czx);
+        for i=1:colzx
+            for j=1:rowzx
+                fprintf(fid,'%d',czx(j,i));
+                fprintf(fid,'          ');
+                if mod(j,rowzx)==0
+                fprintf(fid,'\n');
+                end
+            end
+        end
+    fclose(fid);
+    %----------------------------------------------------
     doLine = (lastWinner(1) ~= -1);
     if (doLine) 
       plot([lastWinner(2),winner(2)],[lastWinner(1),winner(1)],'r-');

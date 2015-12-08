@@ -77,16 +77,21 @@ for f = 1:numFeat
       [FM,csLevels] = centerSurround(saliencyData(f).pyr(p),salParams);
     end
     
-    saliencyData(f).FM(p,:) = maxNormalize(FM,salParams,[0,10]);
+    saliencyData(f).FM(p,:) = maxNormalize(FM,salParams,[0,10]);%归一化第p个pyr中的所有中央周边差图
     saliencyData(f).csLevels(p,:) = csLevels;
     
     % combine the feature maps over all scales
     combFM = [combFM combineMaps(saliencyData(f).FM(p,:),...
                                  [salParams.features{f} 'CM'])];
+    %将第p个pyr里面的中央周边差图合并到combFM中，即方向特征的一个子方向的中央周边差合成图
+    %日后循环的效果是：若一个Feat只有一个pyr，像灰度，那么这句是将6个不同scale的中央周边差图放在一个变量里面，即combFM
+    %日后循环的效果是：若一个Faet有多个pyr，像方向（颜色）有4个pyr，那么combFM是一个4个元素的行向量，
+    %每个元素是一个pyr，即一个子特征的中央周边差合成图
   end
   
-  % normalize the combined feature maps
+  % normalize the combined feature maps 
   combFM = maxNormalize(combFM,salParams,[0,0]);
+  %归一化一个Feat的所有pyr，即所有子特征的 中央周边差合成图
   
   % compute conspicuity maps over all sub-features
   if (numPyr == 1)
@@ -95,6 +100,7 @@ for f = 1:numFeat
     % more than 1 sub-feature: additional normalization step
     saliencyData(f).CM = maxNormalize(combineMaps(combFM,[salParams.features{f} 'CM']),...
                                       salParams,[0,0]);
+     %将一个Feat的所有子特征的特征图合并。
   end
     
   % weigh the conspicuity map appropriately
